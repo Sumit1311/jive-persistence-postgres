@@ -15,8 +15,8 @@
  */
 
 var q = require('q');
-    q.longStackSupport = true;
-var lib = require(process.cwd() + '/lib/api.js');
+q.longStackSupport = true;
+var lib = require('./lib/api.js');
 var flat = require('flat');
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,8 +57,8 @@ function hydrate(row) {
 
         if (row.hasOwnProperty(dataKey)) {
             var value = row[dataKey];
-            if (isValue(value) ) {
-                if ( value.indexOf && value.indexOf('<__@> ') == 0 ) {
+            if (isValue(value)) {
+                if (value.indexOf && value.indexOf('<__@> ') == 0) {
                     value = value.split('<__@> ')[1];
                     value = JSON.parse(value);
                     needFlatten = true;
@@ -87,7 +87,7 @@ function buildQueryArguments(collectionID, data, key) {
             var notFound = false;
             for (var kp in keyParts) {
                 if (entry) {
-                    entry = entry[ keyParts[kp]];
+                    entry = entry[keyParts[kp]];
                 } else {
                     notFound = true;
                     break;
@@ -122,8 +122,8 @@ function buildQueryArguments(collectionID, data, key) {
     }
 
     return {
-        keys : keys,
-        values : values
+        keys: keys,
+        values: values
     };
 }
 
@@ -138,7 +138,7 @@ function createUpdateSQL(collectionID, data, key) {
     }
 
     var sql = "update \"" + collectionID + "\" set";
-    for ( var i = 0 ; i < keys.length; i++ ) {
+    for (var i = 0; i < keys.length; i++) {
         sql += " " + keys[i] + "= " + values[i]
             + ( ( i < keys.length - 1 ) ? "," : "");
     }
@@ -167,18 +167,18 @@ function createSelectSQL(collectionID, criteria, limit) {
     var where = [];
     var self = this;
 
-    if ( criteria ) {
-        for ( var dataKey in criteria ) {
+    if (criteria) {
+        for (var dataKey in criteria) {
 
-            if ( criteria.hasOwnProperty(dataKey) ) {
+            if (criteria.hasOwnProperty(dataKey)) {
                 var original = dataKey;
                 dataKey = sanitize(dataKey);
 
                 var tableSchema = self.schemaProvider.getTableSchema(collectionID);
-                if ( tableSchema && tableSchema[dataKey]) {
+                if (tableSchema && tableSchema[dataKey]) {
                     var value = criteria[original];
 
-                    if ( typeof value == 'object') {
+                    if (typeof value == 'object') {
                         var $gt = value['$gt'];
                         var $gte = value['$gte'];
                         var $lt = value['$lt'];
@@ -188,31 +188,31 @@ function createSelectSQL(collectionID, criteria, limit) {
                         dataKey = "\"" + dataKey + "\"";
 
                         var subClauses = [];
-                        if ( $gt ) {
-                            subClauses.push( dataKey + " > '" + $gt + "'");
+                        if ($gt) {
+                            subClauses.push(dataKey + " > '" + $gt + "'");
                         }
 
-                        if ( $gte ) {
-                            subClauses.push( dataKey + " >= '" + $gte  + "'");
+                        if ($gte) {
+                            subClauses.push(dataKey + " >= '" + $gte + "'");
                         }
 
-                        if ( $lt ) {
-                            subClauses.push( dataKey + " < '" + $lt + "'" );
+                        if ($lt) {
+                            subClauses.push(dataKey + " < '" + $lt + "'");
                         }
 
-                        if ( $lte ) {
-                            subClauses.push( dataKey + " <= '" + $lte + "'" );
+                        if ($lte) {
+                            subClauses.push(dataKey + " <= '" + $lte + "'");
                         }
 
-                        if ( $in ) {
+                        if ($in) {
                             var ins = [];
-                            $in.forEach( function(i) {
+                            $in.forEach(function (i) {
                                 ins.push("'" + i + "'");
                             });
-                            subClauses.push( dataKey + " in (" + ins.join(',') + ")" );
+                            subClauses.push(dataKey + " in (" + ins.join(',') + ")");
 
                         }
-                        where.push( "(" + subClauses.join(' AND ') + ")");
+                        where.push("(" + subClauses.join(' AND ') + ")");
 
                     } else {
                         dataKey = "\"" + dataKey + "\"";
@@ -227,18 +227,18 @@ function createSelectSQL(collectionID, criteria, limit) {
     }
 
     var sql = "select * from \"" + collectionID + "\" ";
-    if ( where.length > 0 ) {
+    if (where.length > 0) {
         sql += "where " + where.join(' AND ');
     }
-    if ( limit ) {
+    if (limit) {
         sql += " limit " + limit;
     }
 
     return sql;
 }
 
-function createDeleteSQL(collectionID, key ) {
-    if ( key ) {
+function createDeleteSQL(collectionID, key) {
+    if (key) {
         return "delete from \"" + collectionID + "\" where _id = '" + key + "'";
     } else {
         return "delete from \"" + collectionID + "\"";
@@ -250,7 +250,7 @@ function hydrateResults(r) {
 
     // build a json structure from the results, based on '_' delimiter
     if (r.rows['indexOf']) {
-        r.rows.forEach( function(row) {
+        r.rows.forEach(function (row) {
             var obj = hydrate(row);
             results.push(obj);
         });

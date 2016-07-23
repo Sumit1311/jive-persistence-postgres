@@ -17,7 +17,7 @@
 
 var q = require('q');
 q.longStackSupport = true;
-var lib = require(process.cwd() + '/lib/api.js');
+var lib = require('./lib/api.js');
 var PostgresClient = require('./postgres-client');
 
 module.exports = function (serviceConfig) {

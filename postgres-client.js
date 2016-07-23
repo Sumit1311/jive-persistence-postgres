@@ -15,7 +15,7 @@
  */
 
 var q = require('q');
-var lib = require(process.cwd() + '/lib/api.js');
+var lib = require('./lib/api.js');
 
 q.longStackSupport = true;
 

@@ -1,22 +1,21 @@
 var testUtils = require('jive-testing-framework/testUtils');
-var jive = require('jive-sdk');
 var jivePostgres = require('../postgres-dynamic');
 var jivePostgresBase = require('../postgres-base');
 
-var makeRunner = function() {
-    return testUtils.makeRunner( {
-        'eventHandlers' : {
-            'onTestStart' : function(test) {
+var makeRunner = function () {
+    return testUtils.makeRunner({
+        'eventHandlers': {
+            'onTestStart': function (test) {
                 test['ctx']['persistence'] = new jivePostgres({
-                    'databaseUrl' : 'pg://postgres:postgres@localhost:5432/mydb',
-                    'dbPoolSize' : '15'
+                    'databaseUrl': 'pg://postgres:postgres@localhost:5432/mydb',
+                    'dbPoolSize': '15'
                 });
                 test['ctx']['persistenceBase'] = new jivePostgresBase({
-                    'databaseUrl' : 'pg://postgres:postgres@localhost:5432/mydb',
-                    'dbPoolSize' : '15'
+                    'databaseUrl': 'pg://postgres:postgres@localhost:5432/mydb',
+                    'dbPoolSize': '15'
                 });
             },
-            'onTestEnd' : function(test) {
+            'onTestEnd': function (test) {
                 test['ctx']['persistence'].destroy();
                 test['ctx']['persistenceBase'].destroy();
             }
@@ -26,20 +25,19 @@ var makeRunner = function() {
 
 makeRunner().runTests(
     {
-        'context' : {
-            'testUtils' : testUtils,
-            'jive' : jive,
-            'jivePostgres' : jivePostgres
+        'context': {
+            'testUtils': testUtils,
+            'jivePostgres': jivePostgres
         },
-        'rootSuiteName' : 'jive',
-        'runMode' : 'test',
-        'testcases' : process.cwd()  + '/library',
-        'timeout' : 500000
+        'rootSuiteName': 'jive',
+        'runMode': 'test',
+        'testcases': process.cwd() + '/library',
+        'timeout': 500000
     }
-).then( function(allClear) {
-    if ( allClear ) {
-        process.exit(0);
-    } else {
-        process.exit(-1);
-    }
-});
+).then(function (allClear) {
+        if (allClear) {
+            process.exit(0);
+        } else {
+            process.exit(-1);
+        }
+    });

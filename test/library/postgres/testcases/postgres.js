@@ -4,7 +4,6 @@ var test = require('../basePersistenceTest');
 describe('jive', function () {
 
     describe ('#persistence.postgres', function () {
-
         it('test', function (done) {
             var jive = this['jive'];
             var testUtils = this['testUtils'];

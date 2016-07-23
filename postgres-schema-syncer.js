@@ -15,8 +15,8 @@
  */
 
 var q = require('q');
-    q.longStackSupport = true;
-var lib = require(process.cwd() + '/lib/api.js');
+q.longStackSupport = true;
+var lib = require('./lib/api.js');
 var flat = require('flat');
 var postgresDialect = require('sql-ddl-sync/lib/Dialects/postgresql');
 
@@ -29,16 +29,16 @@ var postgresDialect = require('sql-ddl-sync/lib/Dialects/postgresql');
  * @param schema optional
  * @constructor
  */
-function PostgresSchemaSyncer( db, schema ) {
+function PostgresSchemaSyncer(db, schema) {
     this.db = db;
     this.schema = {};
     this.toSync = {};
     this.analyzed = {};
-    if ( schema ) {
+    if (schema) {
         this.toSync = schema;
-        if ( this.toSync ) {
-            for ( var k in this.toSync ) {
-                if (this.toSync.hasOwnProperty(k) ) {
+        if (this.toSync) {
+            for (var k in this.toSync) {
+                if (this.toSync.hasOwnProperty(k)) {
                     var value = this.toSync[k];
                     delete this.toSync[k];
                     this.toSync[k.toLowerCase()] = value;
@@ -77,7 +77,7 @@ function getTableSchema(table) {
 }
 
 function query(sql) {
-    return this.db.query(sql).then( function(dbClient) {
+    return this.db.query(sql).then(function (dbClient) {
         dbClient.release();
         return dbClient;
     });
@@ -85,19 +85,19 @@ function query(sql) {
 
 function tableExists(table) {
     var self = this;
-    return query.call(self, "select * from pg_tables where tablename='" + table + "'").then( function(client) {
+    return query.call(self, "select * from pg_tables where tablename='" + table + "'").then(function (client) {
         var r = client.results();
         return r && r.rowCount > 0;
-    }, function(e) {
+    }, function (e) {
         return q.reject(e);
     });
 }
 
 function dropTable(table) {
     var self = this;
-    return query.call(self, "drop table if exists \"" + table + "\"").then( function(r) {
+    return query.call(self, "drop table if exists \"" + table + "\"").then(function (r) {
         return r;
-    }, function(e) {
+    }, function (e) {
         return q.reject(e);
     });
 }
@@ -117,59 +117,59 @@ function registerTable(collectionID, tableAttrs) {
     }
 }
 
-function syncTable( table, dropIfExists, force ) {
+function syncTable(table, dropIfExists, force) {
     var p = q.defer();
     var self = this;
 
     var collectionID = table['tableName'];
-    collectionID = collectionID.replace('"','');
+    collectionID = collectionID.replace('"', '');
     collectionID = collectionID.toLowerCase();
 
     var tableAttrs = table['attrs'];
-    if ( !tableAttrs['_id'] ) {
-        tableAttrs['_id'] = { type: "text", required: true, index: true, unqiue: true };
+    if (!tableAttrs['_id']) {
+        tableAttrs['_id'] = {type: "text", required: true, index: true, unqiue: true};
     }
 
-    registerTable.call( self, collectionID, tableAttrs);
+    registerTable.call(self, collectionID, tableAttrs);
 
-    q.resolve().then( function() {
+    q.resolve().then(function () {
         // start a transaction
         return q.resolve();
-    }).then( function() {
+    }).then(function () {
         // check if table exists
         return tableExists.call(self, collectionID);
-    }).then( function(exists) {
-        if ( (exists && !force) && !dropIfExists ) {
+    }).then(function (exists) {
+        if ((exists && !force) && !dropIfExists) {
             // nothing to do:
             // - the table exists, and we're not forcing any changes
             // - we are not dropping the table
             delete self.toSync[collectionID];
             return q.resolve({
-                exists : exists
+                exists: exists
             });
         } else {
             // a sync operation is required; grab a client
-            return self.db.getClient().then( function(client) {
+            return self.db.getClient().then(function (client) {
                 return {
-                    client : client,
-                    exists : exists
+                    client: client,
+                    exists: exists
                 }
-            }).fail( function(e) {
+            }).fail(function (e) {
                 return q.reject(e);
             });
         }
-    }).then( function(r) {
+    }).then(function (r) {
         var dbClient = r.client;
         var exists = r.exists;
         var syncDeferred = q.defer();
 
-        if ( dbClient && (!exists || force) ) {
+        if (dbClient && (!exists || force)) {
             var Sync = require("sql-ddl-sync").Sync;
             var sync = new Sync({
                 suppressColumnDrop: true,
-                dialect : "postgresql",
-                db      : dbClient.rawClient(),
-                debug   : function (text) {
+                dialect: "postgresql",
+                db: dbClient.rawClient(),
+                debug: function (text) {
                     lib.logger.info("> %s", text);
                 }
             });
@@ -182,22 +182,22 @@ function syncTable( table, dropIfExists, force ) {
                     dbClient.release();
                     throwError(err);
                 } else {
-                    lib.logger.info("> Sync Done", collectionID );
+                    lib.logger.info("> Sync Done", collectionID);
                     dbClient.release();
                     delete self.toSync[collectionID];
                     syncDeferred.resolve();
                 }
             });
 
-        } else if (dropIfExists ) {
-            return dropTable.call(self, collectionID).then( function() {
-                return syncTable.call(self, table, false).then( function() {
-                    if ( dbClient ) {
+        } else if (dropIfExists) {
+            return dropTable.call(self, collectionID).then(function () {
+                return syncTable.call(self, table, false).then(function () {
+                    if (dbClient) {
                         dbClient.release();
                     }
                     syncDeferred.resolve();
-                }, function(e) {
-                    if ( dbClient ) {
+                }, function (e) {
+                    if (dbClient) {
                         dbClient.release();
                     }
                     throwError(e);
@@ -205,40 +205,39 @@ function syncTable( table, dropIfExists, force ) {
             });
         } else {
             lib.logger.debug("table already exists");
-            if ( dbClient ) {
+            if (dbClient) {
                 dbClient.release();
             }
             syncDeferred.resolve();
         }
         return syncDeferred.promise;
     }).then(
-
         // success
-        function() {
+        function () {
             p.resolve();
         },
 
         // error
-        function(e) {
+        function (e) {
             lib.logger.error(e.stack);
             p.reject(e);
         }
-    ).catch( function(e) {
-        lib.logger.error(e.stack);
-        p.reject(e);
-    });
+    ).catch(function (e) {
+            lib.logger.error(e.stack);
+            p.reject(e);
+        });
 
     return p.promise;
 }
 
-function expandIfNecessary(collectionID, collectionSchema, key, data ) {
+function expandIfNecessary(collectionID, collectionSchema, key, data) {
     var self = this;
     var requireSync;
     var lazyCreateCollection = true; // todo -- parameterize
 
-    if ( !collectionSchema ) {
+    if (!collectionSchema) {
         // collection doesn't exist
-        if ( lazyCreateCollection ) {
+        if (lazyCreateCollection) {
             collectionSchema = {};
             this.schema[collectionID] = collectionSchema;
             requireSync = true;
@@ -248,22 +247,22 @@ function expandIfNecessary(collectionID, collectionSchema, key, data ) {
         }
     }
 
-    if ( typeof data === 'object' ) {
+    if (typeof data === 'object') {
         // data is an object
         // unpack it
-        for ( var dataKey in data ) {
-            if ( !data.hasOwnProperty(dataKey) ) {
+        for (var dataKey in data) {
+            if (!data.hasOwnProperty(dataKey)) {
                 continue;
             }
 
             dataKey = dataKey.replace('.', '_');
 
-            if ( !collectionSchema[dataKey] ) {
+            if (!collectionSchema[dataKey]) {
                 // collection schema doesn't have the attribute
-                if ( lazyCreateCollection ) {
+                if (lazyCreateCollection) {
                     // if lazy collection is enabled, then add it and stimulate a sync
                     // mark it as efinixpandable, since it was dynamically created
-                    collectionSchema[dataKey] = { type: "text", required: false, expandable: true };
+                    collectionSchema[dataKey] = {type: "text", required: false, expandable: true};
                     requireSync = true;
                 } else {
                     // lazy collection is not enabled, therefore don't add it to schema (or expanding)
@@ -275,22 +274,22 @@ function expandIfNecessary(collectionID, collectionSchema, key, data ) {
             // the attribute is in the collection schema, its expandable if its an object and if its marked expandable
             var dataValue = data[dataKey];
             var expandable = collectionSchema[dataKey].expandable && typeof dataValue === 'object';
-            if ( !expandable ) {
+            if (!expandable) {
                 // if its not an expandable, then leave it alone
                 continue;
             }
 
             // its an expandable field: expand it (eg. make new columns)
             var flattened = flat.flatten(dataValue, {'delimiter': '_'});
-            for ( var k in flattened ) {
-                if ( flattened.hasOwnProperty(k)) {
-                    if (k.indexOf('$lt')  > -1 || k.indexOf('$gt')  > -1
-                        || k.indexOf('$lte') > -1 || k.indexOf('$gte') > -1 || k.indexOf('$in') > -1 ) {
+            for (var k in flattened) {
+                if (flattened.hasOwnProperty(k)) {
+                    if (k.indexOf('$lt') > -1 || k.indexOf('$gt') > -1
+                        || k.indexOf('$lte') > -1 || k.indexOf('$gte') > -1 || k.indexOf('$in') > -1) {
                         continue;
                     }
 
-                    if ( !collectionSchema[dataKey + '_' + k] ) {
-                        collectionSchema[dataKey + '_' + k] = { type: "text", required: false, expandable: true };
+                    if (!collectionSchema[dataKey + '_' + k]) {
+                        collectionSchema[dataKey + '_' + k] = {type: "text", required: false, expandable: true};
                         requireSync = true;
                     }
                 }
@@ -298,15 +297,15 @@ function expandIfNecessary(collectionID, collectionSchema, key, data ) {
         }
     }
     else {
-        if ( key && !collectionSchema[key] ) {
+        if (key && !collectionSchema[key]) {
             // collection schema doesn't have the attribute
-            if ( lazyCreateCollection ) {
+            if (lazyCreateCollection) {
                 // if lazy collection is enabled, then add it and stimulate a sync
                 // mark it as expandable, since it was dynamically created
                 // introspect its type based on the value
-                if ( typeof data !== 'function' ) {
+                if (typeof data !== 'function') {
                     var type = typeof data === "string" ? "text" : "number";
-                    collectionSchema[key] = { type: type, required: false, expandable: false };
+                    collectionSchema[key] = {type: type, required: false, expandable: false};
                     requireSync = true;
                 }
             }
@@ -316,13 +315,13 @@ function expandIfNecessary(collectionID, collectionSchema, key, data ) {
     //
     // sync the table (alter its structure) if necessary
     //
-    if ( requireSync ) {
-        return syncTable.call(self,  {
-            'tableName' : collectionID,
-            'attrs' : collectionSchema
-        }, false, true).then( function() {
+    if (requireSync) {
+        return syncTable.call(self, {
+            'tableName': collectionID,
+            'attrs': collectionSchema
+        }, false, true).then(function () {
             return q.resolve();
-        }, function(e) {
+        }, function (e) {
             throwError(e);
         });
     } else {
@@ -332,18 +331,18 @@ function expandIfNecessary(collectionID, collectionSchema, key, data ) {
 
 function prepSchema() {
     var self = this;
-    if (!self.toSync || Object.keys(self.toSync).length < 1 ) {
+    if (!self.toSync || Object.keys(self.toSync).length < 1) {
         return q.resolve();
     } else {
         var promises = [];
-        for ( var k in self.toSync ) {
-            if (self.toSync.hasOwnProperty(k) ) {
+        for (var k in self.toSync) {
+            if (self.toSync.hasOwnProperty(k)) {
                 var value = self.toSync[k];
                 var table = {
-                    'tableName' : k,
-                    'attrs' : value
+                    'tableName': k,
+                    'attrs': value
                 };
-                promises.push( syncTable.bind(self, table) );
+                promises.push(syncTable.bind(self, table));
             }
         }
 
@@ -353,32 +352,32 @@ function prepSchema() {
 
 function prepCollection(collectionID) {
     var self = this;
-    return prepSchema.call(this).then( function() {
+    return prepSchema.call(this).then(function () {
 
         collectionID = collectionID ? collectionID.toLowerCase() : undefined;
-        if ( !collectionID ) {
+        if (!collectionID) {
             return q.resolve();
         }
 
         var p = q.defer();
 
         function readSchema() {
-            if ( !collectionID || self.analyzed[collectionID] ) {
+            if (!collectionID || self.analyzed[collectionID]) {
                 delete self.toSync[collectionID];
                 return q.resolve();
             }
 
             var deferred = q.defer();
-            self.db.getClient().then( function(dbClient) {
-                postgresDialect.getCollectionProperties( dbClient.rawClient(), collectionID, function(err, result) {
-                    if ( !err && result ) {
-                        registerTable.call( self, collectionID, result );
+            self.db.getClient().then(function (dbClient) {
+                postgresDialect.getCollectionProperties(dbClient.rawClient(), collectionID, function (err, result) {
+                    if (!err && result) {
+                        registerTable.call(self, collectionID, result);
                     }
                     self.analyzed[collectionID] = true;
                     dbClient.release();
                     deferred.resolve();
                 });
-            }).fail( function(e) {
+            }).fail(function (e) {
                 deferred.reject(e);
             });
 
@@ -386,7 +385,7 @@ function prepCollection(collectionID) {
         }
 
         function analyze() {
-            readSchema().then( function( ){
+            readSchema().then(function () {
                 if (self.toSync[collectionID]) {
                     // syncing is required, do it
                     var table = {
@@ -399,7 +398,7 @@ function prepCollection(collectionID) {
                 } else {
                     p.resolve();
                 }
-            }).fail( function(e) {
+            }).fail(function (e) {
                 p.reject(e);
             });
         }
@@ -410,22 +409,22 @@ function prepCollection(collectionID) {
     });
 }
 
-function syncCollections( collectionsToSync, dropIfExists ) {
+function syncCollections(collectionsToSync, dropIfExists) {
     collectionsToSync = collectionsToSync || {};
     var p = q.defer();
 
     var proms = [];
-    for ( var key in collectionsToSync ) {
-        if ( collectionsToSync.hasOwnProperty(key) ) {
+    for (var key in collectionsToSync) {
+        if (collectionsToSync.hasOwnProperty(key)) {
             var table = {
-                'tableName' : key,
-                'attrs' : collectionsToSync[key]
+                'tableName': key,
+                'attrs': collectionsToSync[key]
             };
-            proms.push( syncTable.call( this, table, dropIfExists ) );
+            proms.push(syncTable.call(this, table, dropIfExists));
         }
     }
 
-    q.all(proms).then( function() {
+    q.all(proms).then(function () {
         p.resolve();
     });
 
