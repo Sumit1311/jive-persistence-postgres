@@ -16,7 +16,7 @@
 
 var q = require('q');
     q.longStackSupport = true;
-var jive = require('jive-sdk');
+var lib = require(process.cwd() + '/lib/api.js');
 var ArrayStream = require('stream-array');
 var SchemaSyncer = require('./postgres-schema-syncer');
 var SqlAdaptor = require('./postgres-sql-adaptor');
@@ -33,16 +33,16 @@ module.exports = function(serviceConfig) {
 
     // pass in the logger if it exists
     if ( serviceConfig.customLogger ) {
-        jive.logger = serviceConfig.customLogger;
+        lib.logger = serviceConfig.customLogger;
     }
 
     if ( !databaseUrl ) {
         databaseUrl = 'pg://postgres:postgres@localhost:5432/mydb';
     }
 
-    jive.logger.info("*******************");
-    jive.logger.info("Postgres configured");
-    jive.logger.info("*******************");
+    lib.logger.info("*******************");
+    lib.logger.info("Postgres configured");
+    lib.logger.info("*******************");
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Private
@@ -56,8 +56,8 @@ module.exports = function(serviceConfig) {
     var schemaSyncer = new SchemaSyncer(db, serviceConfig['schema']);
     var sqlAdaptor = new SqlAdaptor(schemaSyncer);
 
-    jive.logger.debug('options.databaseUrl:', databaseUrl);
-    jive.logger.debug('options.schema:',  serviceConfig['schema'] );
+    lib.logger.debug('options.databaseUrl:', databaseUrl);
+    lib.logger.debug('options.schema:',  serviceConfig['schema'] );
 
     function isValue(value) {
         return value || typeof value === 'number';
@@ -92,7 +92,7 @@ module.exports = function(serviceConfig) {
             throwError("Can't rollback tx, invalid client");
         }
         if ( e ) {
-            jive.logger.error(e.stack);
+            lib.logger.error(e.stack);
         }
         return dbClient.query("ROLLBACK")
             .finally( function() {
@@ -106,7 +106,7 @@ module.exports = function(serviceConfig) {
 
     function throwError(detail) {
         var error = new Error(detail);
-        jive.logger.error(error.stack);
+        lib.logger.error(error.stack);
         throw error;
     }
 
@@ -297,7 +297,7 @@ module.exports = function(serviceConfig) {
 
                         // error
                         function(e) {
-                            jive.logger.error(e.stack);
+                            lib.logger.error(e.stack);
                             deferred.reject(e);
                         }
                     );

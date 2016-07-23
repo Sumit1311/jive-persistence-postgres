@@ -16,7 +16,7 @@
 
 var q = require('q');
     q.longStackSupport = true;
-var jive = require('jive-sdk');
+var lib = require(process.cwd() + '/lib/api.js');
 var flat = require('flat');
 var postgresDialect = require('sql-ddl-sync/lib/Dialects/postgresql');
 
@@ -61,7 +61,7 @@ PostgresSchemaSyncer.prototype.getTableSchema = getTableSchema;
 
 function throwError(detail) {
     var error = new Error(detail);
-    jive.logger.error(error.stack);
+    lib.logger.error(error.stack);
     throw error;
 }
 
@@ -170,7 +170,7 @@ function syncTable( table, dropIfExists, force ) {
                 dialect : "postgresql",
                 db      : dbClient.rawClient(),
                 debug   : function (text) {
-                    jive.logger.info("> %s", text);
+                    lib.logger.info("> %s", text);
                 }
             });
 
@@ -178,11 +178,11 @@ function syncTable( table, dropIfExists, force ) {
 
             sync.sync(function (err) {
                 if (err) {
-                    jive.logger.error("> Sync Error", err);
+                    lib.logger.error("> Sync Error", err);
                     dbClient.release();
                     throwError(err);
                 } else {
-                    jive.logger.info("> Sync Done", collectionID );
+                    lib.logger.info("> Sync Done", collectionID );
                     dbClient.release();
                     delete self.toSync[collectionID];
                     syncDeferred.resolve();
@@ -204,7 +204,7 @@ function syncTable( table, dropIfExists, force ) {
                 })
             });
         } else {
-            jive.logger.debug("table already exists");
+            lib.logger.debug("table already exists");
             if ( dbClient ) {
                 dbClient.release();
             }
@@ -220,11 +220,11 @@ function syncTable( table, dropIfExists, force ) {
 
         // error
         function(e) {
-            jive.logger.error(e.stack);
+            lib.logger.error(e.stack);
             p.reject(e);
         }
     ).catch( function(e) {
-        jive.logger.error(e.stack);
+        lib.logger.error(e.stack);
         p.reject(e);
     });
 

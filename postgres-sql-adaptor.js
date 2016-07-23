@@ -16,7 +16,7 @@
 
 var q = require('q');
     q.longStackSupport = true;
-var jive = require('jive-sdk');
+var lib = require(process.cwd() + '/lib/api.js');
 var flat = require('flat');
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ function isValue(value) {
 
 function throwError(detail) {
     var error = new Error(detail);
-    jive.logger.error(error.stack);
+    lib.logger.error(error.stack);
     throw error;
 }
 
@@ -154,7 +154,7 @@ function createInsertSQL(collectionID, data, key) {
     var keys = structure.keys;
     if (values.length < 1) {
         var error = new Error("cannot insert empty data");
-        jive.logger.error(error.stack);
+        lib.logger.error(error.stack);
     }
 
     var sql = "insert into \"" + collectionID + "\" ( " + keys.join(',') + " ) " +

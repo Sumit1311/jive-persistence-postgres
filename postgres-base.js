@@ -16,11 +16,11 @@
 
 
 var q = require('q');
-    q.longStackSupport = true;
-var jive = require('jive-sdk');
+q.longStackSupport = true;
+var lib = require(process.cwd() + '/lib/api.js');
 var PostgresClient = require('./postgres-client');
 
-module.exports = function(serviceConfig) {
+module.exports = function (serviceConfig) {
     var databaseUrl;
     var clientAcquireTimeoutMs;
     var dbPoolSize;
@@ -29,30 +29,30 @@ module.exports = function(serviceConfig) {
     // Init
 
     // setup database url
-    if (serviceConfig ) {
+    if (serviceConfig) {
         databaseUrl = serviceConfig['databaseUrl'];
         clientAcquireTimeoutMs = serviceConfig['clientAcquireTimeoutMs'];
-	dbPoolSize = serviceConfig['dbPoolSize'];
+        dbPoolSize = serviceConfig['dbPoolSize'];
     }
 
-    if ( !databaseUrl ) {
+    if (!databaseUrl) {
         throw new Error("Cannot initialize connection with empty database URL.");
     }
 
-    if ( !clientAcquireTimeoutMs ) {
+    if (!clientAcquireTimeoutMs) {
         // default to 15 second client acquisition timeout attempt
         clientAcquireTimeoutMs = 15 * 1000;
     }
 
-    if ( !dbPoolSize ) {
+    if (!dbPoolSize) {
         // default to 10 pooled connections
         dbPoolSize = 10;
     }
 
-    jive.logger.info("Postgres connection pool ready.");
-    jive.logger.info("Connect URL: ", databaseUrl);
-    jive.logger.debug("clientAcquireTimeoutMs: ", clientAcquireTimeoutMs);
-    jive.logger.info("dbPoolSize: ", dbPoolSize);
+    lib.logger.info("Postgres connection pool ready.");
+    lib.logger.info("Connect URL: ", databaseUrl);
+    lib.logger.debug("clientAcquireTimeoutMs: ", clientAcquireTimeoutMs);
+    lib.logger.info("dbPoolSize: ", dbPoolSize);
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Private
@@ -61,46 +61,46 @@ module.exports = function(serviceConfig) {
     var postgres = require('pg');
     postgres.defaults.poolSize = dbPoolSize;
 
-    jive.logger.debug('options.databaseUrl:', databaseUrl);
-    jive.logger.debug('options.schema:',  serviceConfig['schema'] );
-    jive.logger.debug('options.clientAcquireTimeoutMs:',  serviceConfig['clientAcquireTimeoutMs'] );
-    jive.logger.debug('options.dbPoolSize:',  serviceConfig['dbPoolSize'] );
+    lib.logger.debug('options.databaseUrl:', databaseUrl);
+    lib.logger.debug('options.schema:', serviceConfig['schema']);
+    lib.logger.debug('options.clientAcquireTimeoutMs:', serviceConfig['clientAcquireTimeoutMs']);
+    lib.logger.debug('options.dbPoolSize:', serviceConfig['dbPoolSize']);
 
 //    var t = new Date().getTime();
 
-    var badErrorCodeClasses = ['08','53','54','55','57','58','F0','P0','XX'];
+    var badErrorCodeClasses = ['08', '53', '54', '55', '57', '58', 'F0', 'P0', 'XX'];
 
     function requestClient(clientID, deferred) {
 
         var clientCheckoutCountdownInterval = setTimeout(
-            function() {
+            function () {
                 // kill the client request if takes too long
                 deferred.reject(new Error("Could not fetch a client from postgres, aborting."));
                 clientID = null;
             }, clientAcquireTimeoutMs); // should be able to retrieve a client in 15 seconds; otherwise timeout
 
         // get a pg client from the connection pool
-        postgres.connect(databaseUrl, function(err, client, done) {
+        postgres.connect(databaseUrl, function (err, client, done) {
             // clear the error-throwing timeout since we got a response from postgres
             clearTimeout(clientCheckoutCountdownInterval);
 
-            if ( err ) {
+            if (err) {
                 deferred.reject(new Error(err));
                 return;
             }
 
-            if ( !clientID ) {
+            if (!clientID) {
                 // the countdown timer killed it; release this client
                 done();
                 return q.reject("Connection timed out; client acquired late was released and is not available.");
             }
 
-            var handleError = function(err) {
+            var handleError = function (err) {
                 // no error occurred, continue with the request
-                if(!err) return false;
+                if (!err) return false;
 
                 var errClass = err.code.substr(0, 2);
-                if ( badErrorCodeClasses.indexOf(errClass) > -1 ) {
+                if (badErrorCodeClasses.indexOf(errClass) > -1) {
                     // An SERIOUS error occurred, remove the client from the connection pool.
                     // A truthy value passed to done will remove the connection from the pool
                     // instead of simply returning it to be reused.
@@ -123,16 +123,16 @@ module.exports = function(serviceConfig) {
 //            return q.reject(new Error("Failed to get a client"));
 //        }
 
-        var clientID = jive.util.guid();
+        var clientID = lib.guid();
         requestClient(clientID, deferred);
 
         return deferred.promise;
     }
 
     function query(sql) {
-       return getClient().then( function(client) {
-           return client.query(sql);
-       });
+        return getClient().then(function (client) {
+            return client.query(sql);
+        });
     }
 
     function destroy() {
@@ -144,9 +144,9 @@ module.exports = function(serviceConfig) {
     // Public API
 
     var postgresObj = {
-        query : query,
+        query: query,
         destroy: destroy,
-        getClient : getClient
+        getClient: getClient
     };
 
     return postgresObj;

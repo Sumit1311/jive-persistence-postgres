@@ -15,7 +15,7 @@
  */
 
 var q = require('q');
-var jive = require('jive-sdk');
+var lib = require(process.cwd() + '/lib/api.js');
 
 q.longStackSupport = true;
 
@@ -34,14 +34,14 @@ function PostgresClient(client, doneHandler, errorHandler) {
     this.released = false;
 }
 
-PostgresClient.prototype.query = function(sql, values) {
+PostgresClient.prototype.query = function (sql, values) {
     var self = this;
     var p = q.defer();
     try {
-        jive.logger.debug(sql, values);
-        self.client.query(sql, values, function(err, result) {
+        lib.logger.debug(sql, values);
+        self.client.query(sql, values, function (err, result) {
             if (self.errorHandler(err)) {
-                jive.logger.error(err);
+                lib.logger.error(err);
                 self.result = null;
                 p.reject(err);
                 return;
@@ -49,7 +49,7 @@ PostgresClient.prototype.query = function(sql, values) {
             self.result = result;
             p.resolve(self);
         });
-    } catch ( e ) {
+    } catch (e) {
         // no matter what ... always call done
         console.log(e.stack);
         self.doneHandler(self.client);
@@ -60,18 +60,18 @@ PostgresClient.prototype.query = function(sql, values) {
     return p.promise;
 };
 
-PostgresClient.prototype.rawClient = function() {
+PostgresClient.prototype.rawClient = function () {
     return this.client;
 };
 
-PostgresClient.prototype.release = function() {
-    if ( !this.released) {
+PostgresClient.prototype.release = function () {
+    if (!this.released) {
         this.doneHandler();
         this.released = true;
     }
 };
 
-PostgresClient.prototype.results = function() {
+PostgresClient.prototype.results = function () {
     return this.result;
 };
 
